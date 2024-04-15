@@ -11,7 +11,7 @@ def get_random_aircraft_icao24(flights):
     return selected_flight["aircraft"]["icao24"]
 
 if __name__ == '__main__':
-    api_key = 'f2dca7-bc35b3'
+    api_key = ''
     url = f"https://aviation-edge.com/v2/public/flights?key={api_key}"
 
 
