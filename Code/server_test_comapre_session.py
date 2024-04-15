@@ -433,35 +433,6 @@ def sse_request():
     response.headers['Access-Control-Allow-Origin'] = '*'
     return stream_old_data()
 
-# @app.route('/filterdata', method='GET')
-# def filter_data():
-#     # with open('instance_numbers.txt', 'r') as file:
-#     #     lines = file.readlines()
-#     #     if lines:
-#     #         latest_instance_timestamp = lines[-1].strip()
-#     #     else:
-#     #         return HTTPResponse(status=404, body='No instance numbers found.')
-#     latest_instance_timestamp="20240404-144416"
-
-#     weather_filtered = []
-#     flight_filtered = []
-    
-#     with open('weather.csv', 'r', newline='') as weather_file:
-#         weather_reader = csv.DictReader(weather_file)
-#         for row in weather_reader:
-#             if row['instance_timestamp'] == latest_instance_timestamp:
-#                 weather_filtered.append(row)
-    
-#     with open('flight_data.csv', 'r', newline='') as flight_file:
-#         flight_reader = csv.DictReader(flight_file)
-#         for row in flight_reader:
-#             if row['instance_timestamp'] == latest_instance_timestamp:
-#                 flight_filtered.append(row)
-
-#     return bottle.HTTPResponse(status=200, headers={'Content-Type': 'application/json'},
-#                                body=json.dumps({'latest_instance_timestamp': latest_instance_timestamp, 'weather_data': weather_filtered, 'flight_data': flight_filtered}))
-
-
 
 if __name__ == '__main__':
     bottle.run(app, host='::', port=9000, server='gevent')
