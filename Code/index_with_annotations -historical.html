@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flight and Weather Visualization</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; }
+        h1, h2 { text-align: center; margin: 5px 0; }
+        #map { height: 40vh; } 
+        #weatherInfo { display: flex; justify-content: space-around; margin-top: 10px; }
+        .info-box { padding: 5px; border: 1px solid #ddd; border-radius: 5px; text-align: center; flex-grow: 1; }
+        #weatherChart { height: 40vh; width: 100%; } 
+        .flight-info { display: flex; justify-content: space-around; margin-top: 10px; }
+        .flight-info-box { padding: 5px; border: 1px solid #ddd; border-radius: 5px; text-align: left; flex-grow: 1; }
+    </style>
+</head>
+<body>
+    <h1>Old Flight and Weather Run-Time Visualization</h1>
+    <div id="map"></div>
+    <div id="weatherInfo">
+        <div id="windSpeed" class="info-box">Wind Speed: 0 km/h</div>
+        <div id="visibility" class="info-box">Visibility: 0 km</div>
+    </div>
+    <div class="flight-info">
+        <div class="flight-info-box" id="flightStatus">Status: </div>
+        <div class="flight-info-box" id="arrivalAirport">Arrival Airport: </div>
+        <div class="flight-info-box" id="departureAirport">Departure Airport: </div>
+        <div class="flight-info-box" id="flightNumber">Flight Number: </div>
+        <div class="flight-info-box" id="altitude">Altitude: </div>
+        <div class="flight-info-box" id="horizontalSpeed">Horizontal Speed: </div>
+    </div>
+    <canvas id="weatherChart"></canvas> 
+    
+    <script>
+        var map = L.map('map').setView([0,0], 1);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+        var polyline = L.polyline([], {color: 'red'}).addTo(map);
+        var marker = L.marker([0, 0]).addTo(map);
+
+        marker.bindTooltip("Tracking - Last location update", {permanent: true, direction: 'right'}).openTooltip();
+
+        var label
+        function animateMarker(lat, lon, label) {
+            marker.setLatLng([lat, lon]);
+            polyline.addLatLng(L.latLng(lat, lon));
+            map.fitBounds(polyline.getBounds());
+            marker.setTooltipContent(label);
+        }
+
+        var ctx = document.getElementById('weatherChart').getContext('2d');
+        var weatherChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Temperature',
+                    data: [],
+                    borderColor: 'rgb(255, 99, 132)',
+                    fill: false,
+                }, {
+                    label: 'Feels Like',
+                    data: [],
+                    borderColor: 'rgb(54, 162, 235)',
+                    fill: false,
+                }, {
+                    label: 'Temp Min',
+                    data: [],
+                    borderColor: 'rgb(255, 206, 86)',
+                    fill: false,
+                }, {
+                    label: 'Temp Max',
+                    data: [],
+                    borderColor: 'rgb(75, 192, 192)',
+                    fill: false,
+                }]
+            },
+            options: {
+                scales: {
+                    xAxes: [{
+                        type: 'time',
+                        time: {
+                            parser: 'X',
+                            tooltipFormat: 'DD-MM-YYYY HH:mm:ss',
+                            displayFormats: {
+                                'millisecond': 'DD-MM-YYYY HH:mm:ss',
+                                'second': 'DD-MM-YYYY HH:mm:ss',
+                                'minute': 'DD-MM-YYYY HH:mm:ss',
+                                'hour': 'DD-MM-YYYY HH:mm:ss',
+                                'day': 'DD-MM-YYYY HH:mm:ss',
+                                'week': 'DD-MM-YYYY HH:mm:ss',
+                                'month': 'DD-MM-YYYY HH:mm:ss',
+                                'quarter': 'DD-MM-YYYY HH:mm:ss',
+                                'year': 'DD-MM-YYYY HH:mm:ss',
+                            },
+                        },
+                        scaleLabel: {
+                            display: true,
+                            labelString: 'Time'
+                        }
+                    }],
+                    yAxes: [{
+                        scaleLabel: {
+                            display: true,
+                            labelString: 'Temperature (°C)'
+                        }
+                    }]
+                },
+                plugins: {
+                    annotation: {
+                        annotations: {}
+                    }
+                }
+            }
+        });
+
+        var lastAltitude = 0; 
+		var evtSource = new EventSource("http://localhost:9000/sseold");
+
+        evtSource.onmessage = function(event) {
+            var data = JSON.parse(event.data);
+            var flightData = data.flight_data;
+            var weatherData = data.weather_data;
+
+            document.getElementById('flightStatus').textContent = 'Status: ' + flightData.status;
+            document.getElementById('arrivalAirport').textContent = 'Arrival Airport: ' + flightData.arrival.iataCode;
+            document.getElementById('departureAirport').textContent = 'Departure Airport: ' + flightData.departure.iataCode;
+            document.getElementById('flightNumber').textContent = 'Flight Number: ' + flightData.flight.iataNumber;
+            document.getElementById('altitude').textContent = 'Altitude: ' + flightData.geography.altitude + ' meters';
+            document.getElementById('horizontalSpeed').textContent = 'Horizontal Speed: ' + flightData.speed.horizontal + ' m/s';
+            var timestamp = moment.unix(weatherData.dt).toDate();
+            weatherChart.data.labels.push(timestamp);
+            weatherChart.data.datasets[0].data.push(weatherData.main.temp);
+            weatherChart.data.datasets[1].data.push(weatherData.main.feels_like);
+            weatherChart.data.datasets[2].data.push(weatherData.main.temp_min);
+            weatherChart.data.datasets[3].data.push(weatherData.main.temp_max);
+
+            if (Math.abs(flightData.geography.altitude - lastAltitude) > 100) {
+                var annotationId = `altitude-change-${data.weather_data.dt}`;
+                weatherChart.options.plugins.annotation.annotations[annotationId] = {
+                    type: 'line',
+                    mode: 'vertical',
+                    scaleID: 'x',
+                    value: timestamp,
+                    borderColor: 'blue',
+                    borderWidth: 2,
+                    label: {
+                        enabled: true,
+                        content: 'Altitude Change',
+                        position: 'top'
+                    }
+                };
+            }
+            
+            if (flightData.status === 'landed' || flightData.status === 'unknown') {
+                var statusAnnotationId = `status-change-${data.weather_data.dt}`;
+                var label = 'Tracking Ended';
+                weatherChart.options.plugins.annotation.annotations[statusAnnotationId] = {
+                    type: 'line',
+                    mode: 'vertical',
+                    scaleID: 'x',
+                    value: timestamp,
+                    borderColor: flightData.status === 'landed' ? 'green' : 'red',
+                    borderWidth: 2,
+                    label: {
+                        enabled: true,
+                        content: flightData.status.toUpperCase(),
+                        position: 'top'
+                    }
+                };
+            }
+            
+            lastAltitude = flightData.geography.altitude;
+            animateMarker(flightData.geography.latitude, flightData.geography.longitude, label);
+            weatherChart.update();
+
+            document.getElementById('windSpeed').textContent = 'Wind Speed: ' + weatherData.wind.speed + ' m/s';
+            document.getElementById('visibility').textContent = 'Visibility: ' + (weatherData.visibility / 1000) + ' km';
+        };
+    </script>
+</body>
+</html>
