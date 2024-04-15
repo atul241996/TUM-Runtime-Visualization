@@ -19,7 +19,7 @@ with open('instance_numbers.txt', 'a') as file:
 
 app = Bottle()
 
-api_key = 'f2dca7-bc35b3'
+api_key = ''
 app.debug = True
 aircraft_icao24 = '3C64EC'
 flight_num = aircraft_icao24
@@ -34,7 +34,7 @@ flight_not_landed=True
 weather_data = None
 previous_flight_status = None
 
-WEATHER_API_KEY = 'c2ae3191ce2c8cbd500456bd45cf27fa'
+WEATHER_API_KEY = ''
 WEATHER_API_URL = 'https://api.openweathermap.org/data/2.5/weather'
 
 def get_flight_info(api_key, aircraft_icao24):
