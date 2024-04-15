@@ -15,7 +15,7 @@ def get_flight_info(flightnum):
 
     return {"lat":lat, "lon":lon, "flightnum": flightnum}
 
-WEATHER_API_KEY = 'c2ae3191ce2c8cbd500456bd45cf27fa'
+WEATHER_API_KEY = ''
 WEATHER_API_URL = 'https://api.openweathermap.org/data/2.5/weather'
 
 @route('/weather', method='GET')
